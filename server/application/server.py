@@ -1,26 +1,27 @@
 import socketio
-from sanic import Sanic
+from sanic import Sanic, Blueprint
 from .config import Config
-from sanic.response import json, text, file
 
-app = Sanic(name="mySanicApp")
+from application.user.api import user_blueprint
+from application.profile.api import profile_blueprint
+from application.post.api import post_blueprint
+from application.messager.api import messager_blueprint
+from application.favourite.api import favourite_blueprint
+from application.chat.api import chat_blueprint
+from application.admin.api import admin_blueprint
+from application.search.api import search_blueprint
+
+app = Sanic(name="SanicApp")
 app.config.from_object(Config)
 sio = socketio.AsyncServer(async_mode='sanic', cors_allowed_origins="*")
 sio.attach(app)
 
-#from application.extensions import init_extentions
-from application.controllers import init_controllers
-from application.api import init_api
-# import application.extensions.middleware
+import application.extensions.middleware
 
-#init_extentions(app)
-init_controllers(app)
-init_api(app)
+app.static("/uploads", "./uploads")
 
-if app.config.get("ENV") == "production":
-    import os
-    parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    print("////", parentdir)
-    @app.get('*')
-    async def dir(request):
-        return file(parentdir)
+api = Blueprint.group(user_blueprint, profile_blueprint, post_blueprint, messager_blueprint, favourite_blueprint, chat_blueprint, admin_blueprint, search_blueprint, url_prefix="/api/v1")
+
+app.blueprint(api)
+
+import application.extensions.socketio

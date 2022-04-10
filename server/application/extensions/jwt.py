@@ -1,12 +1,12 @@
 from functools import wraps
 
 import jwt
-from application.server import text
+from sanic.response import json
 
 def check_token(request):
     if not request.token:
         return False
-
+    
     try:
         token = jwt.decode(
             request.token, request.app.config.SECRET, algorithms=["HS256"]
@@ -14,7 +14,7 @@ def check_token(request):
     except jwt.exceptions.InvalidTokenError:
         return False
     else:
-        request.ctx.userId = token.get("userId")
+        request.ctx.user = token
         return True
 
 
@@ -28,7 +28,10 @@ def protected(wrapped):
                 response = await f(request, *args, **kwargs)
                 return response
             else:
-                return text("You are unauthorized.", 401)
+                return json({
+                    "message": "unauthorized!"
+                }, status=401)
+
 
         return decorated_function
 
